@@ -1,1 +1,3 @@
-spotdl
+flask==2.3.2
+spotdl==4.2.0
+python-dotenv==1.0.0
