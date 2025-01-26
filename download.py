@@ -31,6 +31,9 @@ def download():
     else:
         return {"error": "File not found"}, 404
 
+@app.route("/", methods=["GET"])
+def home():
+    return "Welcome to the Spotify Downloader API! Use /download?url=<spotify_track_url> to download a track."
 if __name__ == "__main__":
     # Get the port from environment variable (Render will set this)
     port = int(os.environ.get("PORT", 5000))
