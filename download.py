@@ -15,6 +15,8 @@ def download_spotify_track(url, download_directory="downloads"):
     # Log the command output to help with debugging
     print(result.stdout)
     print(result.stderr)
+    print("Files in downloads directory:", os.listdir(download_directory))
+    
 
 @app.route("/download", methods=["GET"])
 def download():
