@@ -2,6 +2,9 @@ import os
 import spotdl
 from http.server import BaseHTTPRequestHandler
 
+# Set the cache directory for spotdl
+os.environ["SPOTDL_CACHE_DIR"] = "./.spotdl_cache"
+
 def download_spotify_track(track_id, download_directory="downloads"):
     # Construct the full Spotify track URL using the track ID
     url = f"https://open.spotify.com/track/{track_id}"
@@ -9,6 +12,10 @@ def download_spotify_track(track_id, download_directory="downloads"):
     # Ensure the download directory exists
     if not os.path.exists(download_directory):
         os.makedirs(download_directory)
+
+    # Ensure the cache directory exists
+    if not os.path.exists(os.environ["SPOTDL_CACHE_DIR"]):
+        os.makedirs(os.environ["SPOTDL_CACHE_DIR"])
 
     # Download the track
     os.system(f"spotdl {url} --output {download_directory}")
