@@ -8,9 +8,13 @@ def download_spotify_track(url, download_directory="downloads"):
     if not os.path.exists(download_directory):
         os.makedirs(download_directory)
 
-    # Use subprocess instead of os.system
+    # Use subprocess to run the spotdl command
     command = f"spotdl {url} --output {download_directory}"
-    subprocess.run(command, shell=True, check=True)
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+    # Log the command output to help with debugging
+    print(result.stdout)
+    print(result.stderr)
 
 @app.route("/download", methods=["GET"])
 def download():
@@ -21,16 +25,15 @@ def download():
     # Download the track
     download_spotify_track(track_url)
 
-    # Get the downloaded file's name
+    # Extract track name from URL (this is just an example, adjust as necessary)
     track_name = track_url.split("/")[-1] + ".mp3"
     file_path = os.path.join("downloads", track_name)
 
-    # Check if the file exists and return it
+    # Check if the file exists
     if os.path.exists(file_path):
         return send_file(file_path, as_attachment=True)
     else:
         return {"error": "File not found"}, 404
-
 @app.route("/", methods=["GET"])
 def home():
     return "Welcome to the Spotify Downloader API! Use /download?url=<spotify_track_url> to download a track."
