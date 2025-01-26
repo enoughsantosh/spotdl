@@ -1,50 +1,35 @@
-
 import os
-from flask import Flask, request, jsonify, send_file
-from spotdl.search import search_song
-from spotdl.download.downloader import download_songs
+import spotdl
+from flask import Flask, request, send_file
 
 app = Flask(__name__)
 
-# Ensure downloads directory exists
-DOWNLOAD_DIR = 'downloads'
-os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+def download_spotify_track(url, download_directory="downloads"):
+    # Ensure the download directory exists
+    if not os.path.exists(download_directory):
+        os.makedirs(download_directory)
 
-@app.route('/download', methods=['POST'])
-def download_song():
-    try:
-        # Get song ID from request
-        data = request.json
-        song_id = data.get('song_id')
-        
-        if not song_id:
-            return jsonify({"error": "No song ID provided"}), 400
-        
-        # Search for the song
-        search_result = search_song(song_id)
-        
-        if not search_result:
-            return jsonify({"error": "Song not found"}), 404
-        
-        # Download the song
-        download_result = download_songs([search_result], output_path=DOWNLOAD_DIR)
-        
-        if not download_result:
-            return jsonify({"error": "Download failed"}), 500
-        
-        # Get the downloaded file path
-        downloaded_file = os.path.join(DOWNLOAD_DIR, os.listdir(DOWNLOAD_DIR)[0])
-        
-        # Return the file
-        return send_file(downloaded_file, as_attachment=True)
+    # Download the track or playlist
+    os.system(f"spotdl {url} --output {download_directory}")
+
+@app.route("/download", methods=["GET"])
+def download():
+    track_url = request.args.get("url")
+    if not track_url:
+        return {"error": "No URL provided"}, 400
     
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    # Download the track
+    download_spotify_track(track_url)
 
-@app.route('/health', methods=['GET'])
-def health_check():
-    return jsonify({"status": "healthy"}), 200
+    # Get the downloaded file's name (assuming the file is named after the track)
+    track_name = track_url.split("/")[-1] + ".mp3"
+    file_path = os.path.join("downloads", track_name)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Check if the file exists and return it
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    else:
+        return {"error": "File not found"}, 404
 
+if __name__ == "__main__":
+    app.run(debug=True)
