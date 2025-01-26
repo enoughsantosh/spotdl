@@ -1,47 +1,50 @@
+
 import os
-import spotdl
-from http.server import BaseHTTPRequestHandler
+from flask import Flask, request, jsonify, send_file
+from spotdl.search import search_song
+from spotdl.download.downloader import download_songs
 
-# Set the cache directory for spotdl
-os.environ["SPOTDL_CACHE_DIR"] = "./.spotdl_cache"
+app = Flask(__name__)
 
-def download_spotify_track(track_id, download_directory="downloads"):
-    # Construct the full Spotify track URL using the track ID
-    url = f"https://open.spotify.com/track/{track_id}"
+# Ensure downloads directory exists
+DOWNLOAD_DIR = 'downloads'
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-    # Ensure the download directory exists
-    if not os.path.exists(download_directory):
-        os.makedirs(download_directory)
+@app.route('/download', methods=['POST'])
+def download_song():
+    try:
+        # Get song ID from request
+        data = request.json
+        song_id = data.get('song_id')
+        
+        if not song_id:
+            return jsonify({"error": "No song ID provided"}), 400
+        
+        # Search for the song
+        search_result = search_song(song_id)
+        
+        if not search_result:
+            return jsonify({"error": "Song not found"}), 404
+        
+        # Download the song
+        download_result = download_songs([search_result], output_path=DOWNLOAD_DIR)
+        
+        if not download_result:
+            return jsonify({"error": "Download failed"}), 500
+        
+        # Get the downloaded file path
+        downloaded_file = os.path.join(DOWNLOAD_DIR, os.listdir(DOWNLOAD_DIR)[0])
+        
+        # Return the file
+        return send_file(downloaded_file, as_attachment=True)
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    # Ensure the cache directory exists
-    if not os.path.exists(os.environ["SPOTDL_CACHE_DIR"]):
-        os.makedirs(os.environ["SPOTDL_CACHE_DIR"])
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
 
-    # Download the track
-    os.system(f"spotdl {url} --output {download_directory}")
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
 
-class RequestHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        # Get the track ID from the query parameters
-        query = self.path.split("?")
-        if len(query) > 1:
-            params = query[1]
-            track_id = params.split("=")[1]  # Extracting track_id parameter
-
-            # Call the download function
-            try:
-                download_spotify_track(track_id)
-                self.send_response(200)
-                self.send_header("Content-type", "text/html")
-                self.end_headers()
-                self.wfile.write(b"Track downloaded successfully!")
-            except Exception as e:
-                self.send_response(500)
-                self.send_header("Content-type", "text/html")
-                self.end_headers()
-                self.wfile.write(f"Error: {str(e)}".encode())
-        else:
-            self.send_response(400)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
-            self.wfile.write(b"Missing track_id parameter.")
