@@ -7,7 +7,7 @@ app.use(express.json());
 app.use(cors());
 
 // MongoDB Atlas connection string
-const MONGO_URI = 'mongodb+srv://kalu4134:R9AT3CMwdtUuWF4X@cluster0.thv3w.mongodb.net/playlistDB?retryWrites=true&w=majority';
+const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('Connected to MongoDB Atlas'))
@@ -56,5 +56,4 @@ app.delete('/api/playlists/:id', async (req, res) => {
     }
 });
 
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+module.exports = app;
