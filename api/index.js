@@ -1,59 +1,51 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
 const cors = require('cors');
 
 const app = express();
-app.use(express.json());
+const PORT = 3000;
+
+// Middleware
+app.use(bodyParser.json());
 app.use(cors());
 
-// MongoDB Atlas connection string
-const MONGO_URI = process.env.MONGO_URI;
-
+// MongoDB Connection
+const MONGO_URI = 'mongodb+srv://kalu4134:R9AT3CMwdtUuWF4X@cluster0.thv3w.mongodb.net/playlistDB?retryWrites=true&w=majority';
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('Connected to MongoDB Atlas'))
-    .catch((error) => console.error('Error connecting to MongoDB Atlas:', error));
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.log(err));
 
-// Playlist Schema
+// MongoDB Schema and Model
 const playlistSchema = new mongoose.Schema({
-    Id: { type: String, unique: true },
-    title: String,
-    cover: String,
+    name: String,
+    url: String
 });
 
 const Playlist = mongoose.model('Playlist', playlistSchema);
 
-// API Routes
-app.post('/api/playlists', async (req, res) => {
-    const { Id, title, cover } = req.body;
-    try {
-        const exists = await Playlist.findOne({ Id });
-        if (exists) return res.status(400).send('Playlist already exists');
+// Routes
 
-        const playlist = new Playlist({ Id, title, cover });
-        await playlist.save();
-        res.status(201).send('Playlist saved successfully');
-    } catch (error) {
-        res.status(500).send('Error saving playlist');
-    }
-});
-
+// Get all playlists
 app.get('/api/playlists', async (req, res) => {
-    try {
-        const playlists = await Playlist.find();
-        res.status(200).json(playlists);
-    } catch (error) {
-        res.status(500).send('Error fetching playlists');
-    }
+    const playlists = await Playlist.find();
+    res.json(playlists);
 });
 
+// Add a playlist
+app.post('/api/playlists', async (req, res) => {
+    const { name, url } = req.body;
+    const newPlaylist = new Playlist({ name, url });
+    await newPlaylist.save();
+    res.json({ message: 'Playlist added successfully' });
+});
+
+// Delete a playlist
 app.delete('/api/playlists/:id', async (req, res) => {
     const { id } = req.params;
-    try {
-        await Playlist.findOneAndDelete({ Id: id });
-        res.status(200).send('Playlist deleted successfully');
-    } catch (error) {
-        res.status(500).send('Error deleting playlist');
-    }
+    await Playlist.findByIdAndDelete(id);
+    res.json({ message: 'Playlist deleted successfully' });
 });
 
+// Start Server
 module.exports = app;
